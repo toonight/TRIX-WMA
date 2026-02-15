@@ -1,0 +1,76 @@
+# TRIX + WMA Robustness Research — Default Configuration
+
+# Primary ticker for in-depth analysis
+tickers: ["LRCX"]
+start_date: "2005-01-01"
+end_date: "2024-12-31"
+
+# Global random seed (ensures MC and bootstrap reproducibility)
+seed: 42
+
+# Parameter grid ranges (inclusive)
+trix_period_range: [10, 20]
+wma_period_range: [15, 25]
+shift_range: [3, 6]
+
+# Trading frictions
+fees_pct: 0.001          # one-way fee fraction
+slippage_pct: 0.002      # one-way slippage fraction
+risk_free_rate: 0.0
+
+# Minimum trades to consider a param set valid
+min_trades: 30
+
+# Neighborhood kernel shape for plateau scoring (TRIX, WMA, SHIFT)
+neighborhood_kernel: [3, 3, 3]
+
+# Minimum fraction of neighbors that must beat BH to pass
+bh_frac_threshold: 0.7
+
+# Number of top plateau centers to report
+plateau_top_n: 5
+
+# Plateau objective weights
+plateau_objective_weights:
+  cagr: 1.0                       # median alpha_cagr — maximize
+  maxdd: 1.0                      # |median maxdd| — minimize
+  sharpe: 0.5                     # median sharpe — maximize
+  neighbor_var_penalty: 0.5        # intra-neighborhood alpha std — penalize
+  bh_outperformance_fraction: 1.0  # fraction of neighbors beating BH
+
+# Walk-forward configuration
+walk_forward:
+  train_years: 5
+  test_years: 1
+  step_months: 6
+  embargo_bars: 5
+
+# Monte Carlo stress test configuration
+monte_carlo:
+  n_sims: 500
+  slippage_multiplier_range: [0.5, 2.0]
+  miss_trade_prob: 0.02
+  random_delay_bars: [0, 1]
+
+# Gap penalty model: extra slippage when next-open gap exceeds ATR threshold
+# Set gap_penalty_atr_threshold to 0 to disable.
+gap_penalty_atr_threshold: 2.0    # gap / ATR ratio to trigger penalty
+gap_extra_slip_pct: 0.005          # additional slippage on gap bars
+
+# Multi-asset default tickers (full grid + plateau scored per ticker)
+multi_asset_tickers:
+  - "LRCX"
+  - "AAPL"
+  - "MSFT"
+  - "NVDA"
+  - "AMZN"
+  - "GOOGL"
+  - "META"
+  - "JPM"
+  - "XOM"
+  - "SPY"
+  - "QQQ"
+  - "GLD"
+
+# Run tag (auto = timestamp)
+output_run_tag: "auto"
