@@ -1,0 +1,53 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+*.egg
+dist/
+build/
+*.whl
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS generated
+Thumbs.db
+.DS_Store
+
+# Secrets (NEVER commit these)
+.env
+.env.*
+*.pem
+*.key
+*.p12
+
+# Data cache (downloaded from yfinance — regenerable)
+trix_wma_robustness/data/cache/
+
+# Generated artifacts (reproducible from pipeline)
+trix_wma_robustness/artifacts/
+trix_wma_robustness/reports/figures/
+trix_wma_robustness/reports/summary.json
+trix_wma_robustness/reports/latest.md
+
+# GSD State Files
+.gsd/ARCHITECTURE.md
+.gsd/DECISIONS.md
+.gsd/JOURNAL.md
+.gsd/ROADMAP.md
+.gsd/SPEC.md
+.gsd/STACK.md
+.gsd/STATE.md
+.gsd/TODO.md
+
+# Jupyter
+.ipynb_checkpoints/
