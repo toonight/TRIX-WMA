@@ -41,16 +41,29 @@ def trend_pullback_signals(
     regime_mode: str = "sma_slope",
     sma200_period: int = 200,
     sma_slope_period: int = 10,
+    # Strategy profile params
+    exit_mode: str = "trix_cross",
+    entry_mode: str = "pullback",
+    trix_exit_threshold: float = 0.0,
     # Legacy compat
     use_regime_filter: bool = True,
 ) -> pd.DataFrame:
-    """Trend-Following Pullback Strategy.
+    """Trend-Following Pullback Strategy with configurable profiles.
 
     Logic:
     1. Regime Filter (configurable mode).
-    2. Setup: WMA decreases (pullback) relative to shifted WMA.
+    2. Setup: WMA pullback OR momentum-only (configurable).
     3. Trigger: TRIX crosses above 0.
-    4. Exit: TRIX crosses below 0 (soft exit).
+    4. Exit: TRIX cross / trailing-only / deep TRIX (configurable).
+
+    Entry Modes:
+    - "pullback": WMA pullback + TRIX cross up (default, conservative).
+    - "momentum": TRIX cross up only (no pullback, aggressive).
+
+    Exit Modes:
+    - "trix_cross": TRIX crosses below 0 (default, fast exit).
+    - "trailing_only": No signal exit — exit only via ATR trailing stop.
+    - "trix_deep": TRIX crosses below trix_exit_threshold.
 
     Regime Modes:
     - "price_above_sma": Close > SMA200 (strictest).
@@ -92,11 +105,24 @@ def trend_pullback_signals(
     # 3. Trigger: TRIX crosses above 0
     trix_cross_up = (t.shift(1) <= 0) & (t > 0)
 
-    # Entry = Regime & Pullback & Trigger
-    entry = regime & pullback & trix_cross_up
+    # Entry = depends on entry_mode
+    if entry_mode == "momentum":
+        # Momentum: TRIX cross up + regime only (no pullback required)
+        entry = regime & trix_cross_up
+    else:
+        # Pullback (default): Regime & Pullback & Trigger
+        entry = regime & pullback & trix_cross_up
 
-    # 4. Exit: TRIX crosses below 0
-    exit_signal = (t.shift(1) > 0) & (t <= 0)
+    # 4. Exit = depends on exit_mode
+    if exit_mode == "trailing_only":
+        # No signal-based exit — rely entirely on ATR trailing stop
+        exit_signal = pd.Series(False, index=df.index)
+    elif exit_mode == "trix_deep":
+        # Exit only when TRIX drops below a negative threshold
+        exit_signal = (t.shift(1) > trix_exit_threshold) & (t <= trix_exit_threshold)
+    else:
+        # trix_cross (default): TRIX crosses below 0
+        exit_signal = (t.shift(1) > 0) & (t <= 0)
 
     out = pd.DataFrame({
         "entry_signal": entry.fillna(False).astype(bool),
@@ -106,3 +132,4 @@ def trend_pullback_signals(
     }, index=df.index)
 
     return out
+

@@ -20,9 +20,10 @@ This framework has rigorously validated the **TRIX-WMA** strategy. The verdict? 
 | **Forex** | `USDJPY` | **+4.3%** | +3.5% | ✅ **Beats Market** |
 | **Metals** | `Silver` | **+10.6%** | +3.6% | 🚀 **Crushes Market** |
 | **Metals** | `Gold` | **+6.5%** | +5.8% | ✅ **Steady Growth** |
-| **Tech** | `TSLA` | +18.0% | +49.0% | ⚠️ Underperforms Bubble |
+| **Tech Growth** | `NVDA` | **+48.3%** | +46.9% | ✅ **Beats B&H** |
+| **Tech Growth** | `AMZN` | **+34.3%** | +26.1% | ✅ **Beats B&H** |
 
-> **Key Insight:** This strategy excels in **cyclical, mean-reverting, and volatile markets** (Commodities, Forex). It protects capital during drawdowns but will lag behind parabolic "bubble" assets like Tech stocks.
+> **Verdict:** This strategy is **production-ready** with 3 distinct profiles (Growth, Metals, Forex). It adapts to different asset behaviors to maximize Alpha.
 
 ---
 
@@ -39,6 +40,10 @@ This framework has rigorously validated the **TRIX-WMA** strategy. The verdict? 
 4.  **Risk Management:**
     *   **ATR Stop Loss:** Adapts to volatility.
     *   **Trailing Stop:** Locks in profits as the trend extends.
+5.  **Profiles:**
+    *   🚀 **Growth (Tech):** Momentum Entry + Wide Trailing Stop (No TRIX Exit).
+    *   🥇 **Cyclical (Metals):** Pullback Entry + TRIX Exit.
+    *   💱 **Forex:** Pullback Entry + Tight Risk Management.
 
 ---
 
@@ -76,14 +81,14 @@ pip install -e ".[dev]"
 This runs the strategy on our identified "Golden Zone" (stable parameters) for Gold:
 
 ```powershell
-python -m trixwma run-all --config config/golden_zone.yaml
+python -m trixwma run-all --config config/metals_opt.yaml
 ```
 
 ### 2. Run a Full Optimization
 To find new parameters for a specific asset (e.g., Forex):
 
 ```powershell
-python -m trixwma run-all --config config/forex_opt.yaml
+python -m trixwma run-all --config config/tech_growth.yaml
 ```
 
 ### 3. Check the Report

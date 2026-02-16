@@ -9,6 +9,7 @@ from trixwma.grid import grid_to_tensor
 from trixwma.strategy import trend_pullback_signals
 from trixwma.backtest import run_backtest, compute_metrics, buy_and_hold_metrics
 from trixwma.data import load_ohlcv
+from trixwma import plots  # Import plots module
 
 
 # ---------------------------------------------------------------------------
@@ -38,6 +39,9 @@ def walk_forward(
     regime_mode: str = "sma_slope",
     sma200_period: int = 200,
     sma_slope_period: int = 10,
+    exit_mode: str = "trix_cross",
+    entry_mode: str = "pullback",
+    trix_exit_threshold: float = 0.0,
     ticker: str = "",
     start_date: str = "",
     end_date: str = "",
@@ -98,6 +102,9 @@ def walk_forward(
             regime_mode=regime_mode,
             sma200_period=sma200_period,
             sma_slope_period=sma_slope_period,
+            exit_mode=exit_mode,
+            entry_mode=entry_mode,
+            trix_exit_threshold=trix_exit_threshold,
             ticker=ticker, start_date=start_date, end_date=end_date,
         )
         bh_train = buy_and_hold_metrics(train_df, fees_pct, slippage_pct, risk_free_rate)
@@ -141,6 +148,9 @@ def walk_forward(
             regime_mode=regime_mode,
             sma200_period=sma200_period,
             sma_slope_period=sma_slope_period,
+            exit_mode=exit_mode,
+            entry_mode=entry_mode,
+            trix_exit_threshold=trix_exit_threshold,
         )
         atr_series = sig["atr"] if "atr" in sig.columns else None
         
@@ -196,6 +206,9 @@ def walk_forward_selected_plateau(
     regime_mode: str = "sma_slope",
     sma200_period: int = 200,
     sma_slope_period: int = 10,
+    exit_mode: str = "trix_cross",
+    entry_mode: str = "pullback",
+    trix_exit_threshold: float = 0.0,
 ) -> pd.DataFrame:
     """Evaluate a fixed parameter set across rolling OOS windows.
 
@@ -232,6 +245,9 @@ def walk_forward_selected_plateau(
             regime_mode=regime_mode,
             sma200_period=sma200_period,
             sma_slope_period=sma_slope_period,
+            exit_mode=exit_mode,
+            entry_mode=entry_mode,
+            trix_exit_threshold=trix_exit_threshold,
         )
         atr_series = sig["atr"] if "atr" in sig.columns else None
             
@@ -285,12 +301,19 @@ def multi_asset_evaluation(
     regime_mode: str = "sma_slope",
     sma200_period: int = 200,
     sma_slope_period: int = 10,
+    exit_mode: str = "trix_cross",
+    entry_mode: str = "pullback",
+    trix_exit_threshold: float = 0.0,
+    fig_dir: str | None = None, # Add fig_dir argument
 ) -> pd.DataFrame:
     """Run grid + robustness for multiple tickers.
 
     Returns summary table with ``oos_underperformance_freq`` where applicable.
     """
     rows = []
+    from pathlib import Path  # precise import
+    fig_path = Path(fig_dir) if fig_dir else None
+
     for ticker in tickers:
         print(f"  multi-asset: {ticker}")
         try:
@@ -305,6 +328,9 @@ def multi_asset_evaluation(
                 regime_mode=regime_mode,
                 sma200_period=sma200_period,
                 sma_slope_period=sma_slope_period,
+                exit_mode=exit_mode,
+                entry_mode=entry_mode,
+                trix_exit_threshold=trix_exit_threshold,
                 ticker=ticker, start_date=start_date, end_date=end_date,
             )
             bh = buy_and_hold_metrics(df, fees_pct, slippage_pct, risk_free_rate)
@@ -340,6 +366,41 @@ def multi_asset_evaluation(
                     "nb_sharpe_median": best["nb_sharpe_median"],
                     "nb_bh_frac": best["nb_bh_frac"],
                 }
+
+                # Plot Equity Curves if fig_dir is provided
+                if fig_path:
+                    # Re-run to get equity curve
+                    sig = trend_pullback_signals(
+                        df, best["trix_p"], best["wma_p"], best["shift"],
+                        atr_period=atr_period,
+                        regime_mode=regime_mode,
+                        sma200_period=sma200_period,
+                        sma_slope_period=sma_slope_period,
+                        exit_mode=exit_mode,
+                        entry_mode=entry_mode,
+                        trix_exit_threshold=trix_exit_threshold,
+                    )
+                    atr_series = sig["atr"] if "atr" in sig.columns else None
+                    bt = run_backtest(
+                        df, sig["entry_signal"], sig["exit_signal"], fees_pct, slippage_pct,
+                        atr_series=atr_series, sl_atr=sl_atr, ts_atr=ts_atr, time_stop=time_stop
+                    )
+                    
+                    # Buy & Hold Equity
+                    bh_daily_ret = df["Close"].pct_change().fillna(0)
+                    bh_equity = (1 + bh_daily_ret).cumprod()
+                    
+                    # Scale both to start at 1.0
+                    strat_eq = bt["equity"] / bt["equity"].iloc[0]
+                    bh_equity = bh_equity / bh_equity.iloc[0]
+
+                    plots.equity_curves(
+                        df,
+                        {"Strategy": strat_eq, "Buy & Hold": bh_equity},
+                        fig_path,
+                        ticker=ticker
+                    )
+
             else:
                 row = {
                     "ticker": ticker,

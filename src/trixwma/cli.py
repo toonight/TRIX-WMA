@@ -75,6 +75,9 @@ def _run_all(config_path: str):
     regime_mode = cfg.get("regime_mode", "sma_slope")
     sma_period = cfg.get("sma200_period", 200)
     sma_slope_period = cfg.get("sma_slope_period", 10)
+    exit_mode = cfg.get("exit_mode", "trix_cross")
+    entry_mode = cfg.get("entry_mode", "pullback")
+    trix_exit_threshold = cfg.get("trix_exit_threshold", 0.0)
 
     ticker = cfg["tickers"][0]
     start = cfg["start_date"]
@@ -93,6 +96,7 @@ def _run_all(config_path: str):
         df, trix_range, wma_range, shift_range, fees, slip, rfr,
         atr_period=atr_period, sl_atr=sl_atr, ts_atr=ts_atr, time_stop=time_stop,
         regime_mode=regime_mode, sma200_period=sma_period, sma_slope_period=sma_slope_period,
+        exit_mode=exit_mode, entry_mode=entry_mode, trix_exit_threshold=trix_exit_threshold,
         ticker=ticker, start_date=start, end_date=end,
     )
     tab_dir.mkdir(parents=True, exist_ok=True)
@@ -149,6 +153,7 @@ def _run_all(config_path: str):
         df, int(best_row["trix_p"]), int(best_row["wma_p"]), int(best_row["shift"]),
         atr_period=atr_period, regime_mode=regime_mode, sma200_period=sma_period,
         sma_slope_period=sma_slope_period,
+        exit_mode=exit_mode, entry_mode=entry_mode, trix_exit_threshold=trix_exit_threshold,
     )
     atr_series_bp = sig_bp["atr"] if "atr" in sig_bp.columns else None
     bt_bp = run_backtest(
@@ -163,6 +168,7 @@ def _run_all(config_path: str):
             df, p["trix_p"], p["wma_p"], p["shift"],
             atr_period=atr_period, regime_mode=regime_mode, sma200_period=sma_period,
             sma_slope_period=sma_slope_period,
+            exit_mode=exit_mode, entry_mode=entry_mode, trix_exit_threshold=trix_exit_threshold,
         )
         atr_series_pl = sig_pl["atr"] if "atr" in sig_pl.columns else None
         bt_pl = run_backtest(
@@ -187,6 +193,7 @@ def _run_all(config_path: str):
         kernel=kernel, weights=weights, min_trades=min_trades,
         atr_period=atr_period, sl_atr=sl_atr, ts_atr=ts_atr, time_stop=time_stop,
         regime_mode=regime_mode, sma200_period=sma_period, sma_slope_period=sma_slope_period,
+        exit_mode=exit_mode, entry_mode=entry_mode, trix_exit_threshold=trix_exit_threshold,
         ticker=ticker, start_date=start, end_date=end,
     )
     wf_df.to_csv(tab_dir / f"walk_forward_{ticker}.csv", index=False)
@@ -215,6 +222,7 @@ def _run_all(config_path: str):
         gap_extra_slip_pct=gap_slip,
         atr_period=atr_period, sl_atr=sl_atr, ts_atr=ts_atr, time_stop=time_stop,
         regime_mode=regime_mode, sma200_period=sma_period, sma_slope_period=sma_slope_period,
+        exit_mode=exit_mode, entry_mode=entry_mode, trix_exit_threshold=trix_exit_threshold,
     )
     mc_df.to_csv(tab_dir / f"mc_stress_{ticker}.csv", index=False)
     mc_summary_data = mc_sum_fn(mc_df, bh_cagr=bh["cagr"])
@@ -236,6 +244,8 @@ def _run_all(config_path: str):
             kernel, weights, min_trades,
             atr_period=atr_period, sl_atr=sl_atr, ts_atr=ts_atr, time_stop=time_stop,
             regime_mode=regime_mode, sma200_period=sma_period, sma_slope_period=sma_slope_period,
+            exit_mode=exit_mode, entry_mode=entry_mode, trix_exit_threshold=trix_exit_threshold,
+            fig_dir=str(fig_dir), # Pass fig_dir
         )
         multi_df.to_csv(tab_dir / "multi_asset.csv", index=False)
         print(f"  {len(multi_df)} tickers processed")

@@ -1,0 +1,63 @@
+# Tech Growth Profile — NVDA, GOOGL, MSFT, META, AMZN
+# Designed to ride parabolic uptrends without whipsawing out.
+#
+# KEY DIFFERENCE vs default:
+#   entry_mode: momentum  — No pullback required (catches more of the move)
+#   exit_mode: trailing_only — No TRIX exit signal (let winners run via trailing stop)
+#   regime_mode: none — Always in (no SMA200 filter for secular growth stocks)
+
+tickers: ["NVDA"]
+multi_asset_tickers: ["NVDA", "GOOGL", "MSFT", "META", "AMZN"]
+start_date: "2010-01-01"
+end_date: "2024-12-31"
+seed: 42
+
+# Strategy Profile
+entry_mode: "momentum"
+exit_mode: "trailing_only"
+
+# Wider grid for momentum entry (longer periods capture bigger trends)
+trix_period_range: [8, 20]
+wma_period_range: [15, 40]
+shift_range: [4, 10]
+
+# Risk Management — Trailing Stop ONLY (no initial SL, no TRIX exit)
+atr_period_range: [14, 14]
+sl_atr_range: [0.0, 0.0]
+ts_atr_range: [3.0, 3.0]
+time_stop_range: [0, 0]
+
+# No Regime Filter for secular growth
+regime_mode: "none"
+sma200_period: 200
+sma_slope_period: 10
+
+# Thresholds
+fees_pct: 0.001
+slippage_pct: 0.001
+risk_free_rate: 0.0
+min_trades: 10
+
+neighborhood_kernel: [3, 3, 3]
+bh_frac_threshold: 0.3
+plateau_top_n: 5
+plateau_objective_weights:
+  cagr: 1.5
+  maxdd: 0.5
+  sharpe: 1.0
+  neighbor_var_penalty: 0.5
+  bh_outperformance_fraction: 0.5
+
+walk_forward:
+  train_years: 5
+  test_years: 1
+  step_months: 6
+  embargo_bars: 5
+
+monte_carlo:
+  n_sims: 100
+  slippage_multiplier_range: [0.5, 2.0]
+  miss_trade_prob: 0.02
+  random_delay_bars: [0, 1]
+
+output_run_tag: "tech_growth"

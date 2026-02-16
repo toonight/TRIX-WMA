@@ -21,6 +21,9 @@ def evaluate_grid(
     regime_mode: str = "sma_slope",
     sma200_period: int = 200,
     sma_slope_period: int = 10,
+    exit_mode: str = "trix_cross",
+    entry_mode: str = "pullback",
+    trix_exit_threshold: float = 0.0,
     ticker: str = "",
     start_date: str = "",
     end_date: str = "",
@@ -65,7 +68,11 @@ def evaluate_grid(
                 regime_mode=regime_mode,
                 sma200_period=sma200_period,
                 sma_slope_period=sma_slope_period,
+                exit_mode=exit_mode,
+                entry_mode=entry_mode,
+                trix_exit_threshold=trix_exit_threshold,
             )
+
             
             atr_series = sig["atr"] if "atr" in sig.columns else None
             
