@@ -10,7 +10,12 @@ import yfinance as yf
 
 
 def _cache_path(ticker: str, start: str, end: str, cache_dir: Path) -> Path:
+    # Sanitize ticker to prevent path traversal (e.g. "../../etc/passwd")
     safe = ticker.replace("/", "_").replace("^", "_")
+    safe = safe.replace("\\", "_").replace("..", "_").replace(":", "_")
+    # Final guard: ensure no path separators remain
+    if Path(safe).name != safe:
+        raise ValueError(f"Invalid ticker after sanitization: {ticker!r}")
     return cache_dir / f"{safe}_{start}_{end}.parquet"
 
 
