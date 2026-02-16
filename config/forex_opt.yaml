@@ -1,0 +1,55 @@
+# Forex Optimization — Focused on EURUSD=X
+# Testing if Wider Stops (Trend Following) improve performance over Standard settings
+
+tickers: ["EURUSD=X"]
+multi_asset_tickers: ["EURUSD=X", "GBPUSD=X", "USDJPY=X"]
+start_date: "2010-01-01"
+end_date: "2024-12-31"
+seed: 42
+
+# Centered around Best Pixel (T7, W18) - proven region
+trix_period_range: [4, 12]
+wma_period_range: [10, 25]
+shift_range: [4, 10]
+
+# Risk Management — TESTING WIDE STOPS for Forex
+# Forex trends can be long but noisy.
+atr_period_range: [14, 14]
+sl_atr_range: [3.0, 3.0]
+ts_atr_range: [2.0, 2.0]
+time_stop_range: [0, 0]
+
+# Regime Filter
+regime_mode: "sma_slope"
+sma200_period: 200
+sma_slope_period: 10
+
+# Thresholds
+fees_pct: 0.0002   # Forex fees are lower (spread ~2 pips on 1.1000 is ~0.02%)
+slippage_pct: 0.0002 # Liquid market
+risk_free_rate: 0.0
+min_trades: 15
+
+neighborhood_kernel: [3, 3, 3]
+bh_frac_threshold: 0.5
+plateau_top_n: 5
+plateau_objective_weights:
+  cagr: 1.0
+  maxdd: 1.0
+  sharpe: 0.5
+  neighbor_var_penalty: 0.5
+  bh_outperformance_fraction: 1.0
+
+walk_forward:
+  train_years: 5
+  test_years: 1
+  step_months: 6
+  embargo_bars: 5
+
+monte_carlo:
+  n_sims: 100
+  slippage_multiplier_range: [0.5, 2.0]
+  miss_trade_prob: 0.02
+  random_delay_bars: [0, 1]
+
+output_run_tag: "forex_opt"

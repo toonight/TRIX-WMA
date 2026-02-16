@@ -16,6 +16,7 @@ def generate_report(
     multi_df: pd.DataFrame,
     mc_summary_data: dict,
     bh_metrics: dict,
+    bh_sma_metrics: dict,
     ticker: str,
     fig_dir: Path,
     out_path: Path,
@@ -38,16 +39,17 @@ def generate_report(
 
     # 2 — Strategy definition
     _h("## 2. Strategy Definition\n")
-    _h("- **WMA(period):** Weighted Moving Average with linearly increasing weights.\n")
-    _h("- **TRIX(period):** 1-bar % change of triple-smoothed EMA.\n")
-    _h("- **Entry:** Pullback condition (WMA_t < WMA_{t−shift}) AND TRIX crosses above 0.\n")
-    _h("- **Exit:** TRIX crosses below 0.\n")
-    _h("- **Execution:** Signals at close of bar t → fill at open of bar t+1 (no lookahead).\n")
-    _h("- **Frictions:** Fees + slippage applied at execution.\n")
+    _h("- **WMA:Weighted Moving Average** (Pullback Setup)\n")
+    _h("- **TRIX:** Momentum (Trigger)\n")
+    _h("- **Logic:** Trend-Following Pullback with Regime Filter (SMA200) & ATR Risk Management.\n")
+    _h("- **Execution:** Signals at close of bar t → fill at open of bar t+1.\n")
 
-    # 3 — Buy-and-Hold baseline
-    _h("## 3. Buy-and-Hold Baseline\n")
+    # 3 — Buy-and-Hold Baseline
+    _h("## 3. Baselines\n")
+    _h("### Buy & Hold\n")
     _h(_metrics_table(bh_metrics, "Buy & Hold"))
+    _h("\n### Buy & Hold + SMA200 Filter\n")
+    _h(_metrics_table(bh_sma_metrics, "BH + SMA200"))
     _h("")
 
     # 4 — 2D results
@@ -154,7 +156,7 @@ def generate_report(
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text("\n".join(lines), encoding="utf-8")
-    print(f"  report → {out_path}")
+    print(f"  report -> {out_path}")
 
 
 def write_summary_json(
@@ -163,6 +165,7 @@ def write_summary_json(
     plateaus: list[dict],
     best_pixel: dict,
     bh_metrics: dict,
+    bh_sma_metrics: dict,
     wf_df: pd.DataFrame | None,
     mc_summary_data: dict,
     out_path: Path,
@@ -191,6 +194,7 @@ def write_summary_json(
         "selected_plateaus": clean_plateaus,
         "best_pixel": best_pixel,
         "bh_metrics": bh_metrics,
+        "bh_sma_metrics": bh_sma_metrics,
         "oos_summary": oos_summary,
         "mc_summary": mc_summary_data,
         "verdict": verdict,
@@ -198,7 +202,7 @@ def write_summary_json(
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text(json.dumps(doc, indent=2, default=str), encoding="utf-8")
-    print(f"  summary.json → {out_path}")
+    print(f"  summary.json -> {out_path}")
 
 
 def _compute_verdict(wf_df, mc_summary_data, plateaus) -> str:

@@ -1,0 +1,43 @@
+tickers: ["LRCX"]
+multi_asset_tickers: ["LRCX", "SPY"]
+start_date: "2020-01-01"
+end_date: "2024-01-01"
+seed: 42
+
+# Reduced grid for performance test
+trix_period_range: [5, 20]
+wma_period_range: [10, 40]
+shift_range: [1, 5]
+
+# Params
+atr_period_range: [14, 14]
+sl_atr_range: [2.0, 2.0]
+ts_atr_range: [1.5, 1.5]
+time_stop_range: [10, 10]
+use_regime_filter: true
+sma200_period: 200
+
+min_trades: 10
+neighborhood_kernel: [3, 3, 3]
+
+# Weights
+plateau_objective_weights:
+  cagr: 1.0
+  maxdd: 1.0
+  sharpe: 0.5
+  neighbor_var_penalty: 0.5
+  bh_outperformance_fraction: 1.0
+
+# WF
+walk_forward:
+  train_years: 2
+  test_years: 1
+  step_months: 6
+  embargo_bars: 5
+
+# MC
+monte_carlo:
+  n_sims: 50
+  slippage_multiplier_range: [0.5, 2.0]
+
+output_run_tag: "perf_test_run"

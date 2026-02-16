@@ -2,7 +2,7 @@
 import itertools
 import numpy as np
 import pandas as pd
-from trixwma.strategy import baseline_signals
+from trixwma.strategy import baseline_signals, trend_pullback_signals
 from trixwma.backtest import run_backtest, compute_metrics, buy_and_hold_metrics
 
 
@@ -14,6 +14,13 @@ def evaluate_grid(
     fees_pct: float = 0.001,
     slippage_pct: float = 0.002,
     risk_free_rate: float = 0.0,
+    atr_period: int = 14,
+    sl_atr: float = 0.0,
+    ts_atr: float = 0.0,
+    time_stop: int = 0,
+    regime_mode: str = "sma_slope",
+    sma200_period: int = 200,
+    sma_slope_period: int = 10,
     ticker: str = "",
     start_date: str = "",
     end_date: str = "",
@@ -52,8 +59,24 @@ def evaluate_grid(
     done = 0
     for tp, wp, sp in itertools.product(trix_vals, wma_vals, shift_vals):
         try:
-            sig = baseline_signals(df, tp, wp, sp)
-            bt = run_backtest(df, sig["entry_signal"], sig["exit_signal"], fees_pct, slippage_pct)
+            sig = trend_pullback_signals(
+                df, tp, wp, sp,
+                atr_period=atr_period,
+                regime_mode=regime_mode,
+                sma200_period=sma200_period,
+                sma_slope_period=sma_slope_period,
+            )
+            
+            atr_series = sig["atr"] if "atr" in sig.columns else None
+            
+            bt = run_backtest(
+                df, sig["entry_signal"], sig["exit_signal"], 
+                fees_pct, slippage_pct,
+                atr_series=atr_series,
+                sl_atr=sl_atr,
+                ts_atr=ts_atr,
+                time_stop=time_stop
+            )
             m = compute_metrics(bt, df, risk_free_rate)
         except Exception:
             m = nan_metrics.copy()

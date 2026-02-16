@@ -6,7 +6,7 @@ from dateutil.relativedelta import relativedelta
 from trixwma.grid import evaluate_grid
 from trixwma.robustness import compute_robustness_scores, rank_plateaus
 from trixwma.grid import grid_to_tensor
-from trixwma.strategy import baseline_signals
+from trixwma.strategy import trend_pullback_signals
 from trixwma.backtest import run_backtest, compute_metrics, buy_and_hold_metrics
 from trixwma.data import load_ohlcv
 
@@ -30,6 +30,14 @@ def walk_forward(
     kernel: tuple[int, int, int] = (3, 3, 3),
     weights: dict | None = None,
     min_trades: int = 30,
+    # New params
+    atr_period: int = 14,
+    sl_atr: float = 0.0,
+    ts_atr: float = 0.0,
+    time_stop: int = 0,
+    regime_mode: str = "sma_slope",
+    sma200_period: int = 200,
+    sma_slope_period: int = 10,
     ticker: str = "",
     start_date: str = "",
     end_date: str = "",
@@ -83,25 +91,41 @@ def walk_forward(
         train_grid = evaluate_grid(
             train_df, trix_range, wma_range, shift_range,
             fees_pct, slippage_pct, risk_free_rate,
+            atr_period=atr_period,
+            sl_atr=sl_atr,
+            ts_atr=ts_atr,
+            time_stop=time_stop,
+            regime_mode=regime_mode,
+            sma200_period=sma200_period,
+            sma_slope_period=sma_slope_period,
             ticker=ticker, start_date=start_date, end_date=end_date,
         )
         bh_train = buy_and_hold_metrics(train_df, fees_pct, slippage_pct, risk_free_rate)
+        
+        # If train_grid is empty or all NaN, skip?
+        # Assuming evaluate_grid returns valid DF with NaNs where appropriate.
 
         score, meta, axis = compute_robustness_scores(
             train_grid, grid_to_tensor, bh_train["cagr"],
             kernel=kernel, weights=weights, min_trades=min_trades,
-            bh_frac_threshold=0.0,
+            bh_frac_threshold=0.0, # looser restriction for WF optimization step?
         )
         ranked = rank_plateaus(score, axis, meta, top_n=1)
 
         if not ranked:
-            best_row = train_grid.loc[train_grid["cagr"].idxmax()]
-            best_params = {
-                "trix_p": int(best_row["trix_p"]),
-                "wma_p": int(best_row["wma_p"]),
-                "shift": int(best_row["shift"]),
-            }
-            selection_method = "best_cagr_fallback"
+            # Fallback to best pixel
+            if train_grid["cagr"].max() > -999:
+                 best_row = train_grid.loc[train_grid["cagr"].idxmax()]
+                 best_params = {
+                     "trix_p": int(best_row["trix_p"]),
+                     "wma_p": int(best_row["wma_p"]),
+                     "shift": int(best_row["shift"]),
+                 }
+                 selection_method = "best_cagr_fallback"
+            else:
+                 # No valid params
+                 window_start += step_delta
+                 continue
         else:
             best_params = {
                 "trix_p": ranked[0]["trix_p"],
@@ -111,10 +135,22 @@ def walk_forward(
             selection_method = "plateau"
 
         # Test: apply selected params OOS
-        sig = baseline_signals(
-            test_df, best_params["trix_p"], best_params["wma_p"], best_params["shift"]
+        sig = trend_pullback_signals(
+            test_df, best_params["trix_p"], best_params["wma_p"], best_params["shift"],
+            atr_period=atr_period,
+            regime_mode=regime_mode,
+            sma200_period=sma200_period,
+            sma_slope_period=sma_slope_period,
         )
-        bt = run_backtest(test_df, sig["entry_signal"], sig["exit_signal"], fees_pct, slippage_pct)
+        atr_series = sig["atr"] if "atr" in sig.columns else None
+        
+        bt = run_backtest(
+            test_df, sig["entry_signal"], sig["exit_signal"], fees_pct, slippage_pct,
+            atr_series=atr_series,
+            sl_atr=sl_atr,
+            ts_atr=ts_atr,
+            time_stop=time_stop
+        )
         oos_metrics = compute_metrics(bt, test_df, risk_free_rate)
         bh_test = buy_and_hold_metrics(test_df, fees_pct, slippage_pct, risk_free_rate)
 
@@ -152,6 +188,14 @@ def walk_forward_selected_plateau(
     fees_pct: float = 0.001,
     slippage_pct: float = 0.002,
     risk_free_rate: float = 0.0,
+    # New params
+    atr_period: int = 14,
+    sl_atr: float = 0.0,
+    ts_atr: float = 0.0,
+    time_stop: int = 0,
+    regime_mode: str = "sma_slope",
+    sma200_period: int = 200,
+    sma_slope_period: int = 10,
 ) -> pd.DataFrame:
     """Evaluate a fixed parameter set across rolling OOS windows.
 
@@ -182,8 +226,22 @@ def walk_forward_selected_plateau(
             win_start += step_delta
             continue
 
-        sig = baseline_signals(seg, trix_p, wma_p, shift)
-        bt = run_backtest(seg, sig["entry_signal"], sig["exit_signal"], fees_pct, slippage_pct)
+        sig = trend_pullback_signals(
+            seg, trix_p, wma_p, shift,
+            atr_period=atr_period,
+            regime_mode=regime_mode,
+            sma200_period=sma200_period,
+            sma_slope_period=sma_slope_period,
+        )
+        atr_series = sig["atr"] if "atr" in sig.columns else None
+            
+        bt = run_backtest(
+            seg, sig["entry_signal"], sig["exit_signal"], fees_pct, slippage_pct,
+            atr_series=atr_series,
+            sl_atr=sl_atr,
+            ts_atr=ts_atr,
+            time_stop=time_stop
+        )
         m = compute_metrics(bt, seg, risk_free_rate)
         bh = buy_and_hold_metrics(seg, fees_pct, slippage_pct, risk_free_rate)
 
@@ -219,6 +277,14 @@ def multi_asset_evaluation(
     kernel: tuple[int, int, int] = (3, 3, 3),
     weights: dict | None = None,
     min_trades: int = 30,
+    # New params
+    atr_period: int = 14,
+    sl_atr: float = 0.0,
+    ts_atr: float = 0.0,
+    time_stop: int = 0,
+    regime_mode: str = "sma_slope",
+    sma200_period: int = 200,
+    sma_slope_period: int = 10,
 ) -> pd.DataFrame:
     """Run grid + robustness for multiple tickers.
 
@@ -232,6 +298,13 @@ def multi_asset_evaluation(
             grid_df = evaluate_grid(
                 df, trix_range, wma_range, shift_range,
                 fees_pct, slippage_pct, risk_free_rate,
+                atr_period=atr_period,
+                sl_atr=sl_atr,
+                ts_atr=ts_atr,
+                time_stop=time_stop,
+                regime_mode=regime_mode,
+                sma200_period=sma200_period,
+                sma_slope_period=sma_slope_period,
                 ticker=ticker, start_date=start_date, end_date=end_date,
             )
             bh = buy_and_hold_metrics(df, fees_pct, slippage_pct, risk_free_rate)

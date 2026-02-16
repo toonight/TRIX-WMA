@@ -9,9 +9,20 @@ end_date: "2024-12-31"
 seed: 42
 
 # Parameter grid ranges (inclusive)
-trix_period_range: [10, 20]
-wma_period_range: [15, 25]
-shift_range: [3, 6]
+trix_period_range: [5, 40]
+wma_period_range: [10, 100]
+shift_range: [1, 15]
+
+# Risk Management & Regime Filter
+atr_period_range: [14, 14]       # Fixed or range
+sl_atr_range: [1.5, 3.0]         # Initial Stop Loss multiplier
+ts_atr_range: [1.0, 2.5]         # Trailing Stop multiplier
+time_stop_range: [0, 20]         # 0 = disabled
+
+# Regime Filter
+regime_mode: "sma_slope"       # price_above_sma | sma_slope | ema_cross | none
+sma200_period: 200
+sma_slope_period: 10
 
 # Trading frictions
 fees_pct: 0.001          # one-way fee fraction
@@ -19,7 +30,7 @@ slippage_pct: 0.002      # one-way slippage fraction
 risk_free_rate: 0.0
 
 # Minimum trades to consider a param set valid
-min_trades: 30
+min_trades: 60
 
 # Neighborhood kernel shape for plateau scoring (TRIX, WMA, SHIFT)
 neighborhood_kernel: [3, 3, 3]

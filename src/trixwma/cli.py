@@ -6,6 +6,7 @@ from pathlib import Path
 
 import yaml
 import pandas as pd
+import numpy as np
 
 
 def load_config(path: str) -> dict:
@@ -65,6 +66,16 @@ def _run_all(config_path: str):
     gap_atr = cfg.get("gap_penalty_atr_threshold", 0.0)
     gap_slip = cfg.get("gap_extra_slip_pct", 0.005)
 
+    # Risk Management & Regime (Fixed values for grid, taken from mean of range or config)
+    # Note: 3D grid (Trix, Wma, Shift) is maintained. Risk params are fixed for the grid.
+    atr_period = int(np.mean(cfg.get("atr_period_range", [14, 14])))
+    sl_atr = float(np.mean(cfg.get("sl_atr_range", [2.0, 2.0])))
+    ts_atr = float(np.mean(cfg.get("ts_atr_range", [1.5, 1.5])))
+    time_stop = int(np.mean(cfg.get("time_stop_range", [0, 0])))
+    regime_mode = cfg.get("regime_mode", "sma_slope")
+    sma_period = cfg.get("sma200_period", 200)
+    sma_slope_period = cfg.get("sma_slope_period", 10)
+
     ticker = cfg["tickers"][0]
     start = cfg["start_date"]
     end = cfg["end_date"]
@@ -80,19 +91,23 @@ def _run_all(config_path: str):
     print("[2/7] Grid evaluation")
     grid_df = evaluate_grid(
         df, trix_range, wma_range, shift_range, fees, slip, rfr,
+        atr_period=atr_period, sl_atr=sl_atr, ts_atr=ts_atr, time_stop=time_stop,
+        regime_mode=regime_mode, sma200_period=sma_period, sma_slope_period=sma_slope_period,
         ticker=ticker, start_date=start, end_date=end,
     )
     tab_dir.mkdir(parents=True, exist_ok=True)
     grid_path = tab_dir / f"grid_{ticker}.csv"
     grid_df.to_csv(grid_path, index=False)
     grid_df.to_parquet(run_dir / f"grid_{ticker}.parquet", index=False)
-    print(f"  {len(grid_df)} combinations → {grid_path}")
+    print(f"  {len(grid_df)} combinations -> {grid_path}")
 
     # ---------- Step 3: Robustness scoring ----------
     from trixwma.robustness import compute_robustness_scores, rank_plateaus
-    from trixwma.backtest import buy_and_hold_metrics
+    from trixwma.backtest import buy_and_hold_metrics, buy_and_hold_sma200_metrics
     print("[3/7] Robustness scoring")
     bh = buy_and_hold_metrics(df, fees, slip, rfr)
+    bh_sma = buy_and_hold_sma200_metrics(df, fees, slip, rfr, sma_period=sma_period)
+    
     score, meta, axis_vals = compute_robustness_scores(
         grid_df, grid_to_tensor, bh["cagr"],
         kernel=kernel, weights=weights, min_trades=min_trades,
@@ -122,7 +137,7 @@ def _run_all(config_path: str):
     plateau_map(score, axis_vals, fig_dir, ticker)
 
     # Equity curves: best pixel, best plateau, buy-and-hold
-    from trixwma.strategy import baseline_signals
+    from trixwma.strategy import trend_pullback_signals
     from trixwma.backtest import run_backtest
     eq_curves = {}
 
@@ -130,14 +145,30 @@ def _run_all(config_path: str):
     eq_curves["Buy & Hold"] = bh_eq
 
     best_row = grid_df.loc[grid_df["cagr"].idxmax()]
-    sig_bp = baseline_signals(df, int(best_row["trix_p"]), int(best_row["wma_p"]), int(best_row["shift"]))
-    bt_bp = run_backtest(df, sig_bp["entry_signal"], sig_bp["exit_signal"], fees, slip)
+    sig_bp = trend_pullback_signals(
+        df, int(best_row["trix_p"]), int(best_row["wma_p"]), int(best_row["shift"]),
+        atr_period=atr_period, regime_mode=regime_mode, sma200_period=sma_period,
+        sma_slope_period=sma_slope_period,
+    )
+    atr_series_bp = sig_bp["atr"] if "atr" in sig_bp.columns else None
+    bt_bp = run_backtest(
+        df, sig_bp["entry_signal"], sig_bp["exit_signal"], fees, slip,
+        atr_series=atr_series_bp, sl_atr=sl_atr, ts_atr=ts_atr, time_stop=time_stop
+    )
     eq_curves["Best Pixel"] = bt_bp["equity"]
 
     if plateaus:
         p = plateaus[0]
-        sig_pl = baseline_signals(df, p["trix_p"], p["wma_p"], p["shift"])
-        bt_pl = run_backtest(df, sig_pl["entry_signal"], sig_pl["exit_signal"], fees, slip)
+        sig_pl = trend_pullback_signals(
+            df, p["trix_p"], p["wma_p"], p["shift"],
+            atr_period=atr_period, regime_mode=regime_mode, sma200_period=sma_period,
+            sma_slope_period=sma_slope_period,
+        )
+        atr_series_pl = sig_pl["atr"] if "atr" in sig_pl.columns else None
+        bt_pl = run_backtest(
+            df, sig_pl["entry_signal"], sig_pl["exit_signal"], fees, slip,
+            atr_series=atr_series_pl, sl_atr=sl_atr, ts_atr=ts_atr, time_stop=time_stop
+        )
         eq_curves["Best Plateau"] = bt_pl["equity"]
 
     equity_curves(df, eq_curves, fig_dir, ticker)
@@ -154,6 +185,8 @@ def _run_all(config_path: str):
         embargo_bars=wf_cfg.get("embargo_bars", 5),
         fees_pct=fees, slippage_pct=slip, risk_free_rate=rfr,
         kernel=kernel, weights=weights, min_trades=min_trades,
+        atr_period=atr_period, sl_atr=sl_atr, ts_atr=ts_atr, time_stop=time_stop,
+        regime_mode=regime_mode, sma200_period=sma_period, sma_slope_period=sma_slope_period,
         ticker=ticker, start_date=start, end_date=end,
     )
     wf_df.to_csv(tab_dir / f"walk_forward_{ticker}.csv", index=False)
@@ -180,6 +213,8 @@ def _run_all(config_path: str):
         seed=seed,
         gap_penalty_atr_threshold=gap_atr,
         gap_extra_slip_pct=gap_slip,
+        atr_period=atr_period, sl_atr=sl_atr, ts_atr=ts_atr, time_stop=time_stop,
+        regime_mode=regime_mode, sma200_period=sma_period, sma_slope_period=sma_slope_period,
     )
     mc_df.to_csv(tab_dir / f"mc_stress_{ticker}.csv", index=False)
     mc_summary_data = mc_sum_fn(mc_df, bh_cagr=bh["cagr"])
@@ -199,6 +234,8 @@ def _run_all(config_path: str):
             trix_range, wma_range, shift_range,
             str(data_cache), fees, slip, rfr,
             kernel, weights, min_trades,
+            atr_period=atr_period, sl_atr=sl_atr, ts_atr=ts_atr, time_stop=time_stop,
+            regime_mode=regime_mode, sma200_period=sma_period, sma_slope_period=sma_slope_period,
         )
         multi_df.to_csv(tab_dir / "multi_asset.csv", index=False)
         print(f"  {len(multi_df)} tickers processed")
@@ -211,7 +248,7 @@ def _run_all(config_path: str):
     report_path = reports_dir / "latest.md"
     generate_report(
         grid_df, plateaus, wf_df, multi_df,
-        mc_summary_data, bh, ticker, fig_dir, report_path,
+        mc_summary_data, bh, bh_sma, ticker, fig_dir, report_path,
     )
 
     # Machine-readable summary
@@ -223,12 +260,12 @@ def _run_all(config_path: str):
         "alpha_cagr": float(best_row.get("alpha_cagr", 0)),
     }
     write_summary_json(
-        ticker, run_tag, plateaus, best_pixel_dict, bh,
+        ticker, run_tag, plateaus, best_pixel_dict, bh, bh_sma,
         wf_df, mc_summary_data,
         reports_dir / "summary.json",
     )
 
-    print(f"\n✅ Pipeline complete. Run tag: {run_tag}")
+    print(f"\n[OK] Pipeline complete. Run tag: {run_tag}")
     print(f"   Report:       {report_path}")
     print(f"   Summary JSON: {reports_dir / 'summary.json'}")
     print(f"   Figures:      {fig_dir}")

@@ -1,6 +1,6 @@
 # TRIX + WMA Robustness Evaluation Report
 
-**Primary Ticker:** LRCX
+**Primary Ticker:** EURUSD=X
 
 ## 1. Problem Framing
 
@@ -10,149 +10,164 @@ By adding the SHIFT dimension and evaluating a 3D grid, we expose how that brigh
 
 ## 2. Strategy Definition
 
-- **WMA(period):** Weighted Moving Average with linearly increasing weights.
+- **WMA:Weighted Moving Average** (Pullback Setup)
 
-- **TRIX(period):** 1-bar % change of triple-smoothed EMA.
+- **TRIX:** Momentum (Trigger)
 
-- **Entry:** Pullback condition (WMA_t < WMA_{t−shift}) AND TRIX crosses above 0.
+- **Logic:** Trend-Following Pullback with Regime Filter (SMA200) & ATR Risk Management.
 
-- **Exit:** TRIX crosses below 0.
+- **Execution:** Signals at close of bar t → fill at open of bar t+1.
 
-- **Execution:** Signals at close of bar t → fill at open of bar t+1 (no lookahead).
+## 3. Baselines
 
-- **Frictions:** Fees + slippage applied at execution.
-
-## 3. Buy-and-Hold Baseline
+### Buy & Hold
 
 | Metric | Buy & Hold |
 |--------|---------|
-| total_return | 28.0711 |
-| cagr | 0.1838 |
-| ann_vol | 0.4071 |
-| sharpe | 0.4516 |
-| max_dd | -0.7499 |
-| calmar | 0.2451 |
+| total_return | -0.2726 |
+| cagr | -0.0203 |
+| ann_vol | 0.0853 |
+| sharpe | -0.2383 |
+| max_dd | -0.3535 |
+| calmar | -0.0575 |
 | n_trades | 1 |
-| win_rate | 1.0000 |
-| avg_trade_ret | 28.0711 |
+| win_rate | 0.0000 |
+| avg_trade_ret | -0.2726 |
 | exposure | 1.0000 |
+
+### Buy & Hold + SMA200 Filter
+
+| Metric | BH + SMA200 |
+|--------|---------|
+| total_return | -0.2085 |
+| cagr | -0.0150 |
+| ann_vol | 0.0678 |
+| sharpe | -0.2208 |
+| max_dd | -0.3234 |
+| calmar | -0.0463 |
+| n_trades | 55 |
+| win_rate | 0.1091 |
+| avg_trade_ret | -0.0012 |
+| exposure | 0.4407 |
 
 ## 4. 2D Grid Results
 
-![CAGR SHIFT=3](figures/heatmap_cagr_shift3_LRCX.png)
+![CAGR SHIFT=4](figures/heatmap_cagr_shift4_EURUSD=X.png)
 
-![CAGR SHIFT=4](figures/heatmap_cagr_shift4_LRCX.png)
+![CAGR SHIFT=5](figures/heatmap_cagr_shift5_EURUSD=X.png)
 
-![CAGR SHIFT=5](figures/heatmap_cagr_shift5_LRCX.png)
+![CAGR SHIFT=6](figures/heatmap_cagr_shift6_EURUSD=X.png)
 
-![CAGR SHIFT=6](figures/heatmap_cagr_shift6_LRCX.png)
+![CAGR SHIFT=7](figures/heatmap_cagr_shift7_EURUSD=X.png)
+
+![CAGR SHIFT=8](figures/heatmap_cagr_shift8_EURUSD=X.png)
+
+![CAGR SHIFT=9](figures/heatmap_cagr_shift9_EURUSD=X.png)
+
+![CAGR SHIFT=10](figures/heatmap_cagr_shift10_EURUSD=X.png)
 
 ### Best-of-SHIFT Projection
 
-![Best-of-SHIFT CAGR](figures/heatmap_bestshift_cagr_LRCX.png)
+![Best-of-SHIFT CAGR](figures/heatmap_bestshift_cagr_EURUSD=X.png)
 
 ## 5. 3D Results — Fragmentation Across SHIFT
 
-![CAGR grid](figures/heatmap_grid_cagr_LRCX.png)
+![CAGR grid](figures/heatmap_grid_cagr_EURUSD=X.png)
 
 ## 6. Plateau Scoring
 
 Score = w₁·norm(median_alpha_CAGR) − w₂·norm(|median_MaxDD|) + w₃·norm(median_Sharpe)
  − w₄·norm(std_alpha_CAGR) + w₅·frac_beating_BH
 
-![Plateau map](figures/plateau_map_LRCX.png)
+![Plateau map](figures/plateau_map_EURUSD=X.png)
+
+### Top Plateau Centers
+
+| Rank | TRIX | WMA | SHIFT | Score | α-CAGR_med | MaxDD_med | Sharpe_med | α-CAGR_std | BH_frac |
+|------|------|-----|-------|-------|------------|-----------|------------|------------|---------|
+| 1 | 5 | 21 | 7 | 4.922 | 0.0403 | -0.0780 | 0.724 | 0.0031 | 1.00 |
+| 2 | 5 | 21 | 8 | 4.882 | 0.0398 | -0.0779 | 0.711 | 0.0027 | 1.00 |
+| 3 | 5 | 20 | 8 | 4.769 | 0.0396 | -0.0803 | 0.705 | 0.0027 | 1.00 |
+| 4 | 5 | 14 | 10 | 4.711 | 0.0383 | -0.0809 | 0.665 | 0.0016 | 1.00 |
+| 5 | 5 | 20 | 7 | 4.708 | 0.0401 | -0.0816 | 0.720 | 0.0032 | 1.00 |
+
+### Best Pixel vs Best Plateau
+
+- **Best Pixel:** TRIX=6, WMA=21, SHIFT=6 → CAGR=0.0243, α-CAGR=0.0446
+- **Best Plateau:** TRIX=5, WMA=21, SHIFT=7 → α-CAGR median=0.0403
 
 ## 7. Walk-Forward OOS Results
 
-![Walk-forward](figures/walk_forward_LRCX.png)
+![Walk-forward](figures/walk_forward_EURUSD=X.png)
 
 | Window | Test Period | Params | OOS CAGR | OOS Sharpe | OOS MaxDD | Beats BH |
 |--------|------------|--------|----------|-----------|----------|----------|
-| W0 | 2010-01-11→2011-01-03 | T14/W20/S5 | 0.0000 | 0.000 | 0.0000 | False |
-| W1 | 2010-07-13→2011-07-01 | T14/W20/S5 | 0.0000 | 0.000 | 0.0000 | False |
-| W2 | 2011-01-10→2012-01-03 | T15/W15/S6 | 0.0000 | 0.000 | 0.0000 | True |
-| W3 | 2011-07-12→2012-07-03 | T14/W15/S6 | -0.0693 | -0.376 | -0.2059 | True |
-| W4 | 2012-01-10→2013-01-03 | T12/W25/S4 | 0.0000 | 0.000 | 0.0000 | True |
-| W5 | 2012-07-11→2013-07-03 | T12/W25/S4 | 0.0000 | 0.000 | 0.0000 | False |
-| W6 | 2013-01-10→2014-01-03 | T12/W25/S4 | 0.0000 | 0.000 | 0.0000 | False |
-| W7 | 2013-07-11→2014-07-03 | T12/W25/S4 | 0.0000 | 0.000 | 0.0000 | False |
-| W8 | 2014-01-10→2015-01-02 | T12/W25/S4 | 0.0000 | 0.000 | 0.0000 | False |
-| W9 | 2014-07-11→2015-07-02 | T16/W16/S6 | 0.0000 | 0.000 | 0.0000 | False |
-| W10 | 2015-01-12→2015-12-31 | T16/W15/S6 | 0.0000 | 0.000 | 0.0000 | False |
-| W11 | 2015-07-13→2016-07-01 | T16/W15/S6 | 0.0000 | 0.000 | 0.0000 | False |
-| W12 | 2016-01-11→2017-01-03 | T16/W15/S6 | 0.0000 | 0.000 | 0.0000 | False |
-| W13 | 2016-07-12→2017-07-03 | T16/W15/S6 | 0.0000 | 0.000 | 0.0000 | False |
-| W14 | 2017-01-10→2018-01-03 | T16/W15/S6 | 0.0000 | 0.000 | 0.0000 | False |
-| W15 | 2017-07-11→2018-07-03 | T11/W21/S4 | 0.0000 | 0.000 | 0.0000 | False |
-| W16 | 2018-01-10→2019-01-03 | T11/W21/S4 | 0.0000 | 0.000 | 0.0000 | True |
-| W17 | 2018-07-11→2019-07-03 | T11/W21/S4 | 0.0000 | 0.000 | 0.0000 | False |
-| W18 | 2019-01-10→2020-01-03 | T11/W21/S4 | 0.0000 | 0.000 | 0.0000 | False |
-| W19 | 2019-07-11→2020-07-02 | T11/W24/S5 | 0.2007 | 1.236 | -0.0738 | False |
-| W20 | 2020-01-10→2020-12-31 | T11/W24/S5 | 0.6287 | 1.810 | -0.1130 | False |
-| W21 | 2020-07-13→2021-07-02 | T11/W24/S5 | 0.0000 | 0.000 | 0.0000 | False |
-| W22 | 2021-01-11→2022-01-03 | T11/W24/S5 | 0.0000 | 0.000 | 0.0000 | False |
-| W23 | 2021-07-13→2022-07-01 | T11/W24/S5 | 0.0000 | 0.000 | 0.0000 | True |
-| W24 | 2022-01-10→2023-01-03 | T12/W19/S6 | 0.0000 | 0.000 | 0.0000 | True |
-| W25 | 2022-07-12→2023-07-03 | T10/W21/S6 | 0.0000 | 0.000 | 0.0000 | False |
-| W26 | 2023-01-10→2024-01-03 | T13/W18/S6 | 0.0000 | 0.000 | 0.0000 | False |
-| W27 | 2023-07-11→2024-07-03 | T12/W19/S6 | -0.1937 | -1.763 | -0.1909 | False |
+| W0 | 2015-01-08→2016-01-01 | T4/W21/S6 | 0.0000 | 0.000 | 0.0000 | True |
+| W1 | 2015-07-08→2016-07-01 | T4/W22/S9 | -0.0011 | -0.157 | -0.0063 | False |
+| W2 | 2016-01-08→2016-12-30 | T5/W15/S9 | -0.0157 | -1.263 | -0.0162 | True |
+| W3 | 2016-07-08→2017-06-30 | T4/W25/S9 | 0.0000 | 0.000 | 0.0000 | False |
+| W4 | 2017-01-09→2018-01-01 | T4/W23/S9 | -0.0019 | -0.170 | -0.0143 | False |
+| W5 | 2017-07-10→2018-06-29 | T4/W12/S6 | 0.0000 | 0.000 | 0.0000 | False |
+| W6 | 2018-01-08→2019-01-01 | T4/W11/S6 | 0.0000 | 0.000 | 0.0000 | True |
+| W7 | 2018-07-09→2019-07-01 | T6/W12/S5 | 0.0000 | 0.000 | 0.0000 | True |
+| W8 | 2019-01-08→2020-01-01 | T6/W12/S5 | 0.0000 | 0.000 | 0.0000 | True |
+| W9 | 2019-07-08→2020-07-01 | T6/W12/S5 | 0.0000 | 0.000 | 0.0000 | True |
+| W10 | 2020-01-08→2021-01-01 | T6/W12/S5 | 0.0000 | 0.000 | 0.0000 | False |
+| W11 | 2020-07-08→2021-07-01 | T6/W12/S5 | 0.0000 | 0.000 | 0.0000 | False |
+| W12 | 2021-01-08→2021-12-31 | T6/W13/S7 | 0.0000 | 0.000 | 0.0000 | True |
+| W13 | 2021-07-08→2022-07-01 | T4/W12/S10 | 0.0000 | 0.000 | 0.0000 | True |
+| W14 | 2022-01-10→2022-12-30 | T7/W19/S7 | 0.0000 | 0.000 | 0.0000 | True |
+| W15 | 2022-07-08→2023-06-30 | T7/W11/S10 | 0.0000 | 0.000 | 0.0000 | False |
+| W16 | 2023-01-09→2024-01-01 | T7/W11/S10 | 0.0065 | 0.658 | -0.0048 | False |
+| W17 | 2023-07-10→2024-07-01 | T7/W11/S10 | 0.0000 | 0.000 | 0.0000 | True |
 
 ## 8. Multi-Asset Results
 
 | Ticker | TRIX | WMA | SHIFT | Score | CAGR | α-CAGR | Sharpe | MaxDD | BH CAGR | Beats BH |
 |--------|------|-----|-------|-------|------|--------|--------|-------|---------|----------|
-| LRCX | nan | nan | nan | — | — | — | — | — | 0.1838 | False |
-| AAPL | nan | nan | nan | — | — | — | — | — | 0.3203 | False |
-| MSFT | nan | nan | nan | — | — | — | — | — | 0.1694 | False |
-| NVDA | nan | nan | nan | — | — | — | — | — | 0.3902 | False |
-| AMZN | nan | nan | nan | — | — | — | — | — | 0.2577 | False |
-| GOOGL | nan | nan | nan | — | — | — | — | — | 0.2003 | False |
-| META | nan | nan | nan | — | — | — | — | — | 0.2329 | False |
-| JPM | nan | nan | nan | — | — | — | — | — | 0.1239 | False |
-| XOM | nan | nan | nan | — | — | — | — | — | 0.0722 | False |
-| SPY | nan | nan | nan | — | — | — | — | — | 0.1024 | False |
-| QQQ | nan | nan | nan | — | — | — | — | — | 0.1449 | False |
-| GLD | nan | nan | nan | — | — | — | — | — | 0.0899 | False |
+| EURUSD=X | 5 | 21 | 7 | 4.9219 | 0.0204 | 0.0408 | 0.7520 | -0.0646 | -0.0203 | True |
+| GBPUSD=X | 4 | 25 | 10 | 5.0678 | 0.0286 | 0.0447 | 0.8272 | -0.0574 | -0.0162 | True |
+| USDJPY=X | 8 | 23 | 10 | 4.0382 | 0.0432 | 0.0085 | 1.1049 | -0.0394 | 0.0347 | True |
 
-**Fraction beating BH:** 0.0%
+**Fraction beating BH:** 100.0%
 
 ## 9. Monte Carlo Stress Results
 
-![MC CAGR](figures/mc_cagr_LRCX.png)
+![MC CAGR](figures/mc_cagr_EURUSD=X.png)
 
-![MC Sharpe](figures/mc_sharpe_LRCX.png)
+![MC Sharpe](figures/mc_sharpe_EURUSD=X.png)
 
 ### CAGR
-- Median: 0.0765
-- 5th percentile: 0.0715
-- 95th percentile: 0.0773
-- Std: 0.0075
+- Median: 0.0169
+- 5th percentile: 0.0136
+- 95th percentile: 0.0208
+- Std: 0.0027
 
 ### SHARPE
-- Median: 0.5079
-- 5th percentile: 0.4911
-- 95th percentile: 0.5228
-- Std: 0.0266
+- Median: 0.6529
+- 5th percentile: 0.5385
+- 95th percentile: 0.7687
+- Std: 0.0879
 
 ### MAX_DD
-- Median: -0.1160
-- 5th percentile: -0.1285
-- 95th percentile: -0.1160
-- Std: 0.0054
+- Median: -0.0697
+- 5th percentile: -0.0790
+- 95th percentile: -0.0639
+- Std: 0.0074
 
 ### TOTAL_RETURN
-- Median: 3.3578
-- 5th percentile: 2.9723
-- 95th percentile: 3.4256
-- Std: 0.4352
+- Median: 0.2958
+- 5th percentile: 0.2331
+- 95th percentile: 0.3766
+- Std: 0.0537
 
 ### N_TRADES
-- Median: 5.0000
-- 5th percentile: 4.0000
-- 95th percentile: 5.0000
-- Std: 0.3410
+- Median: 35.0000
+- 5th percentile: 34.0000
+- 95th percentile: 36.0000
+- Std: 0.8992
 
-**Probability of underperforming Buy & Hold:** 100.0%
+**Probability of underperforming Buy & Hold:** 0.0%
 
 ## 10. Verdict
 

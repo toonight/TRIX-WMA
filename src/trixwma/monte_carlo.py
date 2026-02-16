@@ -5,7 +5,7 @@ ATR threshold, additional slippage is applied.
 """
 import numpy as np
 import pandas as pd
-from trixwma.strategy import baseline_signals
+from trixwma.strategy import trend_pullback_signals
 from trixwma.backtest import run_backtest, compute_metrics
 from trixwma.indicators import atr as compute_atr
 
@@ -25,6 +25,14 @@ def monte_carlo_stress(
     seed: int = 42,
     gap_penalty_atr_threshold: float = 0.0,
     gap_extra_slip_pct: float = 0.005,
+    # New params
+    atr_period: int = 14,
+    sl_atr: float = 0.0,
+    ts_atr: float = 0.0,
+    time_stop: int = 0,
+    regime_mode: str = "sma_slope",
+    sma200_period: int = 200,
+    sma_slope_period: int = 10,
 ) -> pd.DataFrame:
     """Run Monte Carlo stress tests on a given parameter set.
 
@@ -44,9 +52,18 @@ def monte_carlo_stress(
     """
     rng = np.random.default_rng(seed)
 
-    sig = baseline_signals(df, trix_p, wma_p, shift)
+    # Generate BASE signals with robust logic
+    sig = trend_pullback_signals(
+        df, trix_p, wma_p, shift,
+        atr_period=atr_period,
+        regime_mode=regime_mode,
+        sma200_period=sma200_period,
+        sma_slope_period=sma_slope_period,
+    )
     base_entry = sig["entry_signal"].values.copy()
     base_exit = sig["exit_signal"].values.copy()
+    atr_series = sig["atr"] if "atr" in sig.columns else None
+    
     n = len(df)
 
     # Pre-compute gap mask if gap penalty is enabled
@@ -99,7 +116,13 @@ def monte_carlo_stress(
             entry_s = pd.Series(entry, index=df.index)
 
         exit_s = pd.Series(base_exit, index=df.index)
-        bt = run_backtest(df, entry_s, exit_s, base_fees_pct, effective_slippage)
+        bt = run_backtest(
+            df, entry_s, exit_s, base_fees_pct, effective_slippage,
+            atr_series=atr_series,
+            sl_atr=sl_atr,
+            ts_atr=ts_atr,
+            time_stop=time_stop
+        )
         m = compute_metrics(bt, df, risk_free_rate)
         m["sim"] = sim
         m["slippage_mult"] = slip_mult
