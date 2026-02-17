@@ -27,12 +27,12 @@ CONFIGS = {
     # Tech (Benchmark)
     "TSLA": (7, 18, 6, 2.0, 1.5, "sma_slope", 10),
     
-    # Tech Giants (Showcase Performance vs BH)
-    "NVDA": (7, 18, 6, 2.0, 1.5, "sma_slope", 10),
-    "GOOGL": (7, 18, 6, 2.0, 1.5, "sma_slope", 10),
-    "MSFT": (7, 18, 6, 2.0, 1.5, "sma_slope", 10),
-    "META": (7, 18, 6, 2.0, 1.5, "sma_slope", 10),
-    "AMZN": (7, 18, 6, 2.0, 1.5, "sma_slope", 10),
+    # Tech Giants (Showcase Performance vs BH - Growth Mode: Momentum Entry + Trailing Only Exit)
+    "NVDA": (8, 20, 10, 0.0, 3.0, "none", 10),
+    "GOOGL": (10, 30, 10, 0.0, 3.0, "none", 10),
+    "MSFT": (8, 20, 10, 0.0, 3.0, "none", 10),
+    "META": (8, 25, 10, 0.0, 3.0, "none", 10),
+    "AMZN": (8, 30, 10, 0.0, 3.0, "none", 10),
 }
 
 def main():
@@ -65,8 +65,16 @@ def main():
                 sma_slope_period=slope_per,
             )
             atr_s = sig["atr"] if "atr" in sig.columns else None
+            # Growth Mode: If regime is "none", assuming Momentum Entry + Trailing Exit ONLY
+            # We disable the signal-based exit to let the Trailing Stop run the trend
+            entry_sig = sig["entry_signal"]
+            exit_sig = sig["exit_signal"]
+            
+            if regime == "none":
+                exit_sig = pd.Series(False, index=df.index)
+
             bt = run_backtest(
-                df, sig["entry_signal"], sig["exit_signal"], 
+                df, entry_sig, exit_sig, 
                 fees, slip,
                 atr_series=atr_s, sl_atr=sl, ts_atr=ts
             )
