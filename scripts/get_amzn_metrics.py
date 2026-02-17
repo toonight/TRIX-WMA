@@ -14,9 +14,10 @@ from trixwma.backtest import run_backtest, compute_metrics
 def main():
     sys.stdout = open("amzn_audit.txt", "w")
     ticker = "AMZN"
-    # Params from CONFIGS in generate_equity_curves.py (Growth Mode)
-    # "AMZN": (8, 30, 10, 0.0, 3.0, "none", 10)
-    trix_len = 8
+    # Optimised Growth Mode params (Grid Search 2026-02-17)
+    # TRIX=4, TS=3.0, regime=none, entry=momentum, exit=trailing_only
+    # WMA and Shift have NO effect in momentum mode (no pullback filter)
+    trix_len = 4
     wma_len = 30
     shift = 10
     sl_atr = 0.0
@@ -24,7 +25,7 @@ def main():
     regime = "none" # Growth Mode
     sma_slope = 10
 
-    print(f"--- Verifying {ticker} Metrics ---")
+    print(f"--- Verifying {ticker} Metrics (Optimised Growth Mode) ---")
     print(f"Params: TRIX={trix_len}, WMA={wma_len}, Shift={shift}, Regime={regime}, TS={ts_atr}")
 
     # Load Data
@@ -37,15 +38,19 @@ def main():
         wma_period=wma_len, 
         shift=shift,
         regime_mode=regime,
-        exit_mode="trailing_only" if regime == "none" else "trix_cross",
+        entry_mode="momentum",
+        exit_mode="trailing_only",
         trix_exit_threshold=0.0
     )
     
-    # Backtest
+    # Backtest (must match optimization grid parameters)
     backtest_results = run_backtest(
         df, 
         signals['entry_signal'], 
         signals['exit_signal'],
+        fees_pct=0.001,
+        slippage_pct=0.001,
+        atr_series=signals['atr'],
         ts_atr=ts_atr,
         sl_atr=sl_atr
     )
@@ -71,7 +76,33 @@ def main():
     print(f"MaxDD: {metrics['max_dd']:.2%}")
     print(f"Trades: {metrics['n_trades']}")
     print(f"WinRate: {metrics['win_rate']:.2%}")
-    print("") # Print newline separately
+    print("")
+
+    # --- Generate Plot ---
+    import matplotlib.pyplot as plt
+    plt.figure(figsize=(10, 6))
+    
+    # Calculate Equity Curves (Normalized to start at 1)
+    strategy_equity = backtest_results['equity']
+    # Re-normalize just in case
+    strategy_equity = strategy_equity / strategy_equity.iloc[0]
+    
+    # Buy & Hold Equity
+    buy_hold_equity = df['Close'] / df['Close'].iloc[0]
+    
+    plt.plot(strategy_equity.index, strategy_equity, label='Strategy')
+    plt.plot(buy_hold_equity.index, buy_hold_equity, label='Buy & Hold', alpha=0.7)
+    
+    plt.title(f"{ticker} | Equity Curves")
+    plt.xlabel("Date")
+    plt.ylabel("Equity")
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    
+    output_path = "amzn_equity_curve.png"
+    plt.savefig(output_path)
+    print(f"Plot saved to {output_path}")
+    plt.close()
     
     # --- TEST 2: Alt-Text Params (5, 37, 2) which claims 34.3% CAGR ---
     print("\n--- Verifying AMZN Metrics (Alt-Text: 5/37/2) ---")

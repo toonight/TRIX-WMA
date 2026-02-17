@@ -1,0 +1,22 @@
+--- Verifying AMZN Metrics (Optimised Growth Mode) ---
+Params: TRIX=4, WMA=30, Shift=10, Regime=none, TS=3.0
+
+--- GROUND TRUTH METRICS (Base: 8/30/10) ---
+CAGR: 57.44%
+BH_CAGR: 26.29%
+Alpha: 31.15%
+MaxDD: -50.39%
+Trades: 117
+WinRate: 60.68%
+
+Plot saved to amzn_equity_curve.png
+
+--- Verifying AMZN Metrics (Alt-Text: 5/37/2) ---
+CAGR: 0.55%
+Alpha: -25.74%
+MaxDD: -19.02%
+
+--- Verifying AMZN Metrics (Alt-Text: 5/37/2 + SMA Slope) ---
+CAGR: 0.45%
+Alpha: -25.84%
+MaxDD: -16.01%
