@@ -36,20 +36,33 @@ def main():
     # <td><strong>Gold</strong></td>
     # <td style="text-align: center;">+6.5%</td>
     
-    table_pattern = r'(<td><strong>Gold</strong></td>\s*<td[^>]*>)\+6\.5%</td>'
+    # Previous patch set it to +9.2%, we need to bring it to +6.1% (Robust)
+    table_pattern = r'(<td><strong>Gold</strong></td>\s*<td[^>]*>)\+9\.2%</td>'
     if re.search(table_pattern, new_content):
-        print("Found Gold CAGR +6.5%. Updating to +9.2%...")
-        new_content = re.sub(table_pattern, r'\g<1>+9.2%</td>', new_content)
+        print("Found Gold CAGR +9.2%. Updating to +6.1%...")
+        new_content = re.sub(table_pattern, r'\g<1>+6.1%</td>', new_content)
     else:
-        print("Warning: Could not find Gold CAGR +6.5% to update.")
+        # Fallback if we are running on original file (unlikely but safe)
+        table_pattern_orig = r'(<td><strong>Gold</strong></td>\s*<td[^>]*>)\+6\.5%</td>'
+        if re.search(table_pattern_orig, new_content):
+             print("Found Gold CAGR +6.5%. Updating to +6.1%...")
+             new_content = re.sub(table_pattern_orig, r'\g<1>+6.1%</td>', new_content)
+        else:
+             print("Warning: Could not find Gold CAGR to update.")
 
-    alpha_pattern = r'(<td><strong>Gold</strong></td>.*?<td[^>]*>\+5\.8%</td>\s*<td[^>]*>)\+0\.7%</td>'
+    alpha_pattern = r'(<td><strong>Gold</strong></td>.*?<td[^>]*>\+5\.8%</td>\s*<td[^>]*>)\+3\.4%</td>'
     # Need dotall for multiline matching
     if re.search(alpha_pattern, new_content, re.DOTALL):
-        print("Found Gold Alpha +0.7%. Updating to +3.4%...")
-        new_content = re.sub(alpha_pattern, r'\g<1>+3.4%</td>', new_content, flags=re.DOTALL)
+        print("Found Gold Alpha +3.4%. Updating to +0.3%...")
+        new_content = re.sub(alpha_pattern, r'\g<1>+0.3%</td>', new_content, flags=re.DOTALL)
     else:
-        print("Warning: Could not find Gold Alpha +0.7% to update.")
+         # Fallback
+         alpha_pattern_orig = r'(<td><strong>Gold</strong></td>.*?<td[^>]*>\+5\.8%</td>\s*<td[^>]*>)\+0\.7%</td>'
+         if re.search(alpha_pattern_orig, new_content, re.DOTALL):
+            print("Found Gold Alpha +0.7%. Updating to +0.3%...")
+            new_content = re.sub(alpha_pattern_orig, r'\g<1>+0.3%</td>', new_content, flags=re.DOTALL)
+         else:
+            print("Warning: Could not find Gold Alpha to update.")
 
     print("Writing updated article...")
     with open(article_path, "w", encoding="utf-8") as f:

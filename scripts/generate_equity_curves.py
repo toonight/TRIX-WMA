@@ -11,7 +11,7 @@ from trixwma.plots import equity_curves
 # Ticker -> (TRIX, WMA, SHIFT, SL_ATR, TS_ATR, REGIME_MODE, SMA_SLOPE_PERIOD)
 CONFIGS = {
     # Metals
-    "GC=F": (3, 5, 6, 3.0, 2.0, "sma_slope", 10),  # Gold (Optimized)
+    "GC=F": (7, 17, 10, 3.0, 2.0, "sma_slope", 10),  # Gold (Robust Plateau)
     "SI=F": (7, 15, 10, 2.0, 1.5, "sma_slope", 10), # Silver (Std)
     
     # Forex
