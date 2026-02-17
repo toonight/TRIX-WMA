@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+*.egg
+dist/
+build/
+*.whl
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS generated
+Thumbs.db
+.DS_Store
+
+# Secrets (NEVER commit these)
+.env
+.env.*
+*.pem
+*.key
+*.p12
+
+# Data cache (downloaded from yfinance — regenerable)
+data/cache/
+
+# Generated artifacts (reproducible from pipeline)
+artifacts/runs/
+artifacts/tables/
+artifacts/figures/
+reports/figures/
+reports/summary.json
+reports/latest.md
+test_output.txt
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Jupyter
+.ipynb_checkpoints/
