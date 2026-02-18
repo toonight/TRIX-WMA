@@ -2,11 +2,14 @@
 import os
 
 article_path = r"d:\Projets\2026\TRIX-WMA\docs\article.html"
-b64_path = r"d:\Projets\2026\TRIX-WMA\amzn_b64.txt"
+import base64
 
-# Read Base64
-with open(b64_path, "r", encoding="utf-8") as f:
-    b64_str = f.read().strip()
+article_path = r"d:\Projets\2026\TRIX-WMA\docs\article.html"
+png_path = r"amzn_equity_curve.png"
+
+# Read PNG and encode
+with open(png_path, "rb") as f:
+    b64_str = base64.b64encode(f.read()).decode('utf-8')
 
 # Read Article
 with open(article_path, "r", encoding="utf-8") as f:
